@@ -263,13 +263,13 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 	} else {
 		// Normal flow
 		double delta_t;
-		if(meas_package.sensor_type_ == meas_package.LASER) {
+		if(meas_package.sensor_type_ == meas_package.LASER && use_laser_) {
 			delta_t = (meas_package.timestamp_ - time_us_) / 1000000.0;
 			time_us_ = meas_package.timestamp_;
 
 			Prediction(delta_t);
 			UpdateLidar(meas_package);
-		} else if (meas_package.sensor_type_ == meas_package.RADAR) {
+		} else if (meas_package.sensor_type_ == meas_package.RADAR && use_radar_) {
 
 			delta_t = (meas_package.timestamp_ - time_us_) / 1000000.0;
 			time_us_ = meas_package.timestamp_;
