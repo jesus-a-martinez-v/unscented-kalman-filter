@@ -29,17 +29,17 @@ UKF::UKF() {
   // initial covariance matrix
   P_ = MatrixXd(5, 5);
 
-  P_ << 0.1,   0,    0,   0,   0,
-        0,   0.1,    0,   0,   0,
-        0,   0,    0.1,   0,   0,
-        0,   0,    0,   0.1,   0,
-        0,   0,    0,   0,   0.1;
+  P_ << 1,   0,    0,   0,   0,
+        0,   1,    0,   0,   0,
+        0,   0,    1,   0,   0,
+        0,   0,    0,   1,   0,
+        0,   0,    0,   0,   1;
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 2;
+  std_a_ = 5;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 3;
+  std_yawdd_ = 0.55;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -82,11 +82,11 @@ double normalize_angle(const double angle) {
 	double normalized_angle = angle;
 
 	while (normalized_angle > M_PI) {
-		normalized_angle -= 2 * M_PI;
+		normalized_angle -= 2.0 * M_PI;
 	}
 
 	while (normalized_angle < -M_PI) {
-		normalized_angle += 2 * M_PI;
+		normalized_angle += 2.0 * M_PI;
 	}
 
 	return normalized_angle;
@@ -110,7 +110,6 @@ MatrixXd generate_sigma_points(const VectorXd &x, const MatrixXd &P, int n_x, do
 		X_sigma.col(i + 1 + n_x) = x - common_term;
 	}
 
-	//cout << "X_sigma: " << X_sigma << endl;
 	return X_sigma;
 }
 
@@ -160,7 +159,6 @@ MatrixXd sigma_point_prediction(const MatrixXd &X_sigma_augmented, int n_x, int 
 		}
 
 		double v_p = v;
-		//cout << "v_p before noise: " << v_p << endl;
 		double yaw_p = yaw + yawd * delta_t;
 		double yawd_p = yawd;
 
@@ -169,8 +167,6 @@ MatrixXd sigma_point_prediction(const MatrixXd &X_sigma_augmented, int n_x, int 
 		px_p += 0.5 * constant_term * cos(yaw);
 		py_p += 0.5 * constant_term * sin(yaw);
 		v_p += constant_term / delta_t;
-		//cout << "delta_t " << delta_t << endl;
-		//cout << "v_p after noise: " << v_p << endl;
 
 		yaw_p += 0.5 * nu_yawdd * delta_t * delta_t;
 		yawd_p += nu_yawdd * delta_t;
@@ -183,7 +179,6 @@ MatrixXd sigma_point_prediction(const MatrixXd &X_sigma_augmented, int n_x, int 
 		X_sigma_prediction(4, i) = yawd_p;
 	}
 
-	//cout << "X_sigma_prediction: " << X_sigma_prediction << endl;
 	return X_sigma_prediction;
 }
 
@@ -269,46 +264,21 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 		// Normal flow
 		double delta_t;
 		if(meas_package.sensor_type_ == meas_package.LASER) {
-			//cout << "LASER" << endl;
-			x_ = unpack_laser_measurement(meas_package);
-			//cout << x_ << endl;
-
 			delta_t = (meas_package.timestamp_ - time_us_) / 1000000.0;
 			time_us_ = meas_package.timestamp_;
 
 			Prediction(delta_t);
-			//cout << "PREDICTION" << endl;
-			//cout << "X: " << x_ << endl;
-			//cout << "P: " << P_ << endl;
-			//cout << "-------------------------------\n" << endl;
 			UpdateLidar(meas_package);
-			//cout << "UPDATE" << endl;
-			//cout << "X: " << x_ << endl;
-			//cout << "P: " << P_ << endl;
-			//cout << "-------------------------------\n" << endl;
 		} else if (meas_package.sensor_type_ == meas_package.RADAR) {
-			//cout << "RADAR" << endl;
-			x_ = unpack_radar_measurement(meas_package);
-			//cout << x_ << endl;
 
 			delta_t = (meas_package.timestamp_ - time_us_) / 1000000.0;
 			time_us_ = meas_package.timestamp_;
 
 			Prediction(delta_t);
-			//cout << "PREDICTION" << endl;
-			//cout << "X: " << x_ << endl;
-			//cout << "P: " << P_ << endl;
-			//cout << "-------------------------------\n" << endl;
 			UpdateRadar(meas_package);
-			//cout << "UPDATE" << endl;
-			//cout << "X: " << x_ << endl;
-			//cout << "P: " << P_ << endl;
-			//cout << "-------------------------------\n" << endl;
 		} else {
 			cout << "Received measurement from unexpected source (i.e., not RADAR nor LIDAR)" << endl;
 		}
-
-		// std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 	}
 }
 
